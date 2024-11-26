@@ -1,0 +1,75 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, classification_report
+
+# Load the dataset
+data = pd.read_csv('train.csv')
+
+# Preprocessing
+# Drop irrelevant columns
+data = data.drop(['PassengerId', 'Name', 'Ticket', 'Cabin'], axis=1)
+
+# Separate features and target
+X = data.drop('Survived', axis=1)
+y = data['Survived']
+
+# Handle categorical and numerical columns
+categorical_features = ['Sex', 'Embarked']
+numerical_features = ['Pclass', 'Age', 'SibSp', 'Parch', 'Fare']
+
+# Define transformers
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='most_frequent')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median'))
+])
+
+# Combine transformers using ColumnTransformer
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_transformer, numerical_features),
+        ('cat', categorical_transformer, categorical_features)
+    ])
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Logistic Regression
+logreg = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', LogisticRegression())
+])
+
+# Random Forest
+rf = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', RandomForestClassifier(random_state=42))
+])
+
+# Train and Evaluate Logistic Regression
+logreg.fit(X_train, y_train)
+y_pred_logreg = logreg.predict(X_test)
+print("Logistic Regression:")
+print("Accuracy:", accuracy_score(y_test, y_pred_logreg))
+print("Precision:", precision_score(y_test, y_pred_logreg))
+print("Recall:", recall_score(y_test, y_pred_logreg))
+print(classification_report(y_test, y_pred_logreg))
+
+# Train and Evaluate Random Forest
+rf.fit(X_train, y_train)
+y_pred_rf = rf.predict(X_test)
+print("\nRandom Forest:")
+print("Accuracy:", accuracy_score(y_test, y_pred_rf))
+print("Precision:", precision_score(y_test, y_pred_rf))
+print("Recall:", recall_score(y_test, y_pred_rf))
+print(classification_report(y_test, y_pred_rf))
